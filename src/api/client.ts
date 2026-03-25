@@ -4,26 +4,27 @@ import { generateSignature } from "../auth/hmac.js";
 import { McpToolError } from "../utils/validation.js";
 
 export const SEARCH_BASE_URL = "https://developer.api.walmart.com/api-proxy/service/WPA";
-export const DISPLAY_BASE_URL = "https://developer.api.us.walmart.com/api-proxy/service/display";
+export const DISPLAY_BASE_URL = "https://developer.api.us.walmart.com/api-proxy/service/display/api/v1";
 
 interface RequestOptions {
   method?: "GET" | "POST";
   query?: Record<string, string | number | undefined>;
   body?: unknown;
   rawUrl?: string;
+  baseUrl?: string;
 }
 
 export class WalmartApiClient {
   constructor(private readonly credentials: WalmartCredentials) {}
 
   async request(path: string, options: RequestOptions = {}): Promise<unknown> {
-    const { method = "GET", query, body, rawUrl } = options;
+    const { method = "GET", query, body, rawUrl, baseUrl } = options;
 
     if (method === "POST" && !this.isAllowedPost(path)) {
       throw new McpToolError("API_ERROR", `Blocked non-read-only POST endpoint: ${path}`);
     }
 
-    const url = rawUrl ?? this.makeUrl(path, query);
+    const url = rawUrl ?? this.makeUrl(path, query, baseUrl);
     let lastError: unknown;
 
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -82,8 +83,9 @@ export class WalmartApiClient {
     throw new McpToolError("API_ERROR", `Request failed: ${String(lastError)}`);
   }
 
-  private makeUrl(path: string, query?: Record<string, string | number | undefined>): string {
-    const endpoint = path.startsWith("http") ? path : `${SEARCH_BASE_URL}${path.startsWith("/") ? "" : "/"}${path}`;
+  private makeUrl(path: string, query?: Record<string, string | number | undefined>, baseUrl?: string): string {
+    const root = baseUrl ?? SEARCH_BASE_URL;
+    const endpoint = path.startsWith("http") ? path : `${root}${path.startsWith("/") ? "" : "/"}${path}`;
     const url = new URL(endpoint);
     Object.entries(query ?? {}).forEach(([key, value]) => {
       if (value === undefined || value === null || value === "") return;
@@ -93,6 +95,11 @@ export class WalmartApiClient {
   }
 
   private isAllowedPost(path: string): boolean {
-    return ["/api/v1/insights/snapshot", "/api/v1/itemSearch", "/api/v1/keywordAnalytics"].includes(path);
+    return [
+      "/api/v1/insights/snapshot",
+      "/api/v1/itemSearch",
+      "/api/v1/keywordAnalytics",
+      "/insights/snapshot"
+    ].includes(path);
   }
 }

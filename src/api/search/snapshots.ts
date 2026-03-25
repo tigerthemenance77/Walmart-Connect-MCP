@@ -5,7 +5,27 @@ import { McpToolError, parseCsv } from "../../utils/validation.js";
 export async function createSnapshot(
   client: WalmartApiClient,
   advertiserId: number,
-  reportType: "campaign" | "adGroup" | "keyword" | "adItem",
+  reportType:
+    | "campaign"
+    | "adGroup"
+    | "keyword"
+    | "adItem"
+    | "placement"
+    | "platform"
+    | "pageType"
+    | "brand"
+    | "category"
+    | "itemHealth"
+    | "searchImpression"
+    | "outOfBudgetRecommendations"
+    | "attributedPurchases"
+    | "videoCampaigns"
+    | "videoKeywords"
+    | "advancedInsights"
+    | "entitySnapshot"
+    | "auditSnapshot"
+    | "itemRecommendations"
+    | "keywordRecommendations",
   startDate: string,
   endDate: string
 ): Promise<{ snapshotId: string }> {

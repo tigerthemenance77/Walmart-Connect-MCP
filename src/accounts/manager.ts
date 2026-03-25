@@ -16,6 +16,8 @@ const accountContext: { activeAccount: WalmartAccount | null } = {
 
 export class AccountsManager {
   private inMemoryCache: AccountsCache | null = null;
+  private pendingMatches: WalmartAccount[] | null = null;
+  private pendingQuery: string | null = null;
 
   constructor(private readonly client: WalmartApiClient) {}
 
@@ -26,9 +28,10 @@ export class AccountsManager {
 
   async setAccount(nameOrId: string): Promise<WalmartAccount> {
     const accounts = await this.listAccounts();
-    const account = this.matchAccount(accounts, nameOrId);
-    if (!account) throw new McpToolError("ACCOUNT_NOT_FOUND", `Account not found: ${nameOrId}`);
+    const account = this.resolveAccount(accounts, nameOrId);
     accountContext.activeAccount = account;
+    this.pendingMatches = null;
+    this.pendingQuery = null;
     return account;
   }
 
@@ -130,18 +133,47 @@ export class AccountsManager {
     throw new McpToolError("API_ERROR", "Snapshot polling timed out.");
   }
 
-  private matchAccount(accounts: WalmartAccount[], nameOrId: string): WalmartAccount | null {
-    const normalized = nameOrId.trim().toLowerCase();
-    const exactId = accounts.find((a) => String(a.advertiserId) === normalized);
+  private resolveAccount(accounts: WalmartAccount[], nameOrId: string): WalmartAccount {
+    const query = nameOrId.trim();
+    const normalized = query.toLowerCase();
+
+    if (this.pendingMatches?.length && this.pendingQuery) {
+      const byIndex = /^\d+$/.test(query) ? this.pendingMatches[Number(query) - 1] : undefined;
+      if (byIndex) return byIndex;
+
+      const byFullName = this.pendingMatches.find((a) => a.advertiserName.toLowerCase() === normalized);
+      if (byFullName) return byFullName;
+    }
+
+    const exactId = accounts.find((a) => String(a.advertiserId) === query);
     if (exactId) return exactId;
 
     const exactName = accounts.find((a) => a.advertiserName.toLowerCase() === normalized);
     if (exactName) return exactName;
 
-    return (
-      accounts.find((a) => a.advertiserName.toLowerCase().includes(normalized)) ??
-      accounts.find((a) => String(a.advertiserId).includes(normalized)) ??
-      null
+    const matches = accounts.filter(
+      (a) => a.advertiserName.toLowerCase().includes(normalized) || String(a.advertiserId).includes(normalized)
+    );
+
+    if (matches.length === 1) return matches[0];
+
+    if (matches.length > 1) {
+      this.pendingMatches = matches;
+      this.pendingQuery = query;
+      const options = matches
+        .map((account, index) => `(${index + 1}) ${account.advertiserName} (ID: ${account.advertiserId}, ${account.apiType})`)
+        .join(", ");
+      throw new McpToolError(
+        "ACCOUNT_NOT_FOUND",
+        `Multiple accounts match '${query}': ${options}. Reply with the number or full name.`
+      );
+    }
+
+    this.pendingMatches = null;
+    this.pendingQuery = null;
+    throw new McpToolError(
+      "ACCOUNT_NOT_FOUND",
+      `No account found matching '${query}'. Run list_accounts to see all available accounts, or refresh_accounts if new accounts were added recently.`
     );
   }
 }
