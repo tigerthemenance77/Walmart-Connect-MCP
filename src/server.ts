@@ -334,11 +334,11 @@ You're ready to work with Walmart Connect data!`
 
   server.registerTool(
     "get_top_search_trends",
-    { description: "Get top search trends (advertiser agnostic)", inputSchema: z.object({ format: z.string().optional() }).strict() },
+    { description: "Get daily trending search terms across Walmart (advertiser-agnostic, no account required)", inputSchema: z.object({ format: z.string().optional() }).strict() },
     ({ format }) =>
       capture(async () => {
         const data = await getTopSearchTrends(client, format);
-        return JSON.stringify(data, null, 2);
+        return `ℹ️ This data is Walmart-wide (not account-specific).\n\n${JSON.stringify(data, null, 2)}`;
       })
   );
 

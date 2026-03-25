@@ -37,26 +37,41 @@ export class WalmartApiClient {
         this.credentials.keyVersion
       );
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          Authorization: `Bearer ${this.credentials.authToken}`,
-          "WM_CONSUMER.ID": this.credentials.consumerId,
-          "WM_SEC.AUTH_SIGNATURE": signature,
-          "WM_SEC.KEY_VERSION": this.credentials.keyVersion,
-          "WM_CONSUMER.intimestamp": timestamp,
-          "WM_QOS.CORRELATION_ID": correlationId,
-          "Content-Type": "application/json"
-        },
-        body: body ? JSON.stringify(body) : undefined
-      });
+      let response: Response;
+      try {
+        // Walmart API requirement: no cookies must be sent. Native fetch does not persist cookies by default.
+        // If using a cookie-aware HTTP library, ensure cookie jar is disabled.
+        response = await fetch(url, {
+          method,
+          headers: {
+            Authorization: `Bearer ${this.credentials.authToken}`,
+            "WM_CONSUMER.ID": this.credentials.consumerId,
+            "WM_SEC.AUTH_SIGNATURE": signature,
+            "WM_SEC.KEY_VERSION": this.credentials.keyVersion,
+            "WM_CONSUMER.intimestamp": timestamp,
+            "WM_QOS.CORRELATION_ID": correlationId,
+            "Content-Type": "application/json"
+          },
+          body: body ? JSON.stringify(body) : undefined
+        });
+      } catch (error) {
+        lastError = error;
+        if (attempt === 2) {
+          throw new McpToolError("API_ERROR", "Network error contacting Walmart API after retries.");
+        }
+        const networkAttempt = attempt + 1;
+        const networkDelay = Math.random() * Math.min(60_000, 5_000 * Math.pow(2, networkAttempt));
+        await new Promise((resolve) => setTimeout(resolve, networkDelay));
+        continue;
+      }
 
       if (response.status === 429) {
         if (attempt === 2) {
           throw new McpToolError("RATE_LIMITED", "Walmart API rate limit exceeded after retries.");
         }
-        const delay =
-          Math.random() * Math.min(30 * 60 * 1000, 10 * 60 * 1000 * Math.pow(2, attempt));
+        const retryAfterHeader = response.headers.get("Retry-After");
+        const baseDelayMs = retryAfterHeader ? parseInt(retryAfterHeader, 10) * 1000 : 600_000;
+        const delay = Math.random() * Math.min(30 * 60 * 1000, baseDelayMs * Math.pow(2, attempt));
         await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
       }
@@ -69,8 +84,11 @@ export class WalmartApiClient {
       }
 
       if (!response.ok) {
-        const text = await response.text();
-        throw new McpToolError("API_ERROR", `Walmart API error ${response.status}: ${text.slice(0, 300)}`);
+        const safeMessage =
+          response.status === 401 || response.status === 403
+            ? "Authentication failed — check your credentials."
+            : `Walmart API returned ${response.status}. Try again or check get_api_usage for rate limit status.`;
+        throw new McpToolError("API_ERROR", safeMessage);
       }
 
       const contentType = response.headers.get("content-type") ?? "";
