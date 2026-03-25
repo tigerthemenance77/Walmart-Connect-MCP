@@ -2,7 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { WalmartCredentials } from "./auth/credentials.js";
 import { WalmartApiClient } from "./api/client.js";
-import { AccountsManager } from "./accounts/manager.js";
+import { AccountsManager, listAccounts } from "./accounts/manager.js";
 import { getCampaigns } from "./api/search/campaigns.js";
 import { getAdGroups } from "./api/search/adGroups.js";
 import { getAdItems } from "./api/search/adItems.js";
@@ -33,6 +33,16 @@ import { displayGetAdGroups } from "./api/display/adGroups.js";
 import { displayGetKeywords } from "./api/display/keywords.js";
 import { displayGetCreatives, displayGetCreativeAssociations, displayGetCreativePreview } from "./api/display/creatives.js";
 import { displayGetGeoLocations, displayGetTargeting } from "./api/display/targeting.js";
+import {
+  displayGetBrandLandingPages,
+  displayGetBrands,
+  displayGetCatalog,
+  displayGetFolders,
+  displayGetItemsetAssociations,
+  displayGetItemsets,
+  displayGetTaxonomies
+} from "./api/display/catalog.js";
+import { displayGetDeliveryEstimate, displayGetReachEstimate } from "./api/display/forecast.js";
 import { displayGetRealtimeStats } from "./api/display/stats.js";
 import {
   displayCreateSnapshot,
@@ -540,5 +550,180 @@ You should see your campaign list with the 📍 Account header confirming which 
         const account = await accounts.getActiveAccountOrThrow();
         return withAccountHeader(account, await displayDownloadSnapshot(client, downloadUrl));
       })
+  );
+
+  server.registerTool(
+    "display_get_itemsets",
+    { description: "Get display itemsets for active account", inputSchema: z.object({ class: z.string().optional(), status: z.string().optional() }).strict() },
+    ({ class: className, status }) =>
+      capture(async () => {
+        const account = await accounts.getActiveAccountOrThrow();
+        return withAccountHeader(account, await displayGetItemsets(client, account.advertiserId, { class: className, status }));
+      })
+  );
+
+  server.registerTool(
+    "display_get_itemset_associations",
+    { description: "Get display itemset associations for active account", inputSchema: z.object({ campaignId: z.string().optional(), itemsetId: z.string().optional() }).strict() },
+    ({ campaignId, itemsetId }) =>
+      capture(async () => {
+        const account = await accounts.getActiveAccountOrThrow();
+        return withAccountHeader(account, await displayGetItemsetAssociations(client, account.advertiserId, { campaignId, itemsetId }));
+      })
+  );
+
+  server.registerTool(
+    "display_get_catalog",
+    { description: "Get display catalog for active account", inputSchema: z.object({ itemIds: z.array(z.string()).optional(), brand: z.string().optional(), category: z.string().optional() }).strict() },
+    ({ itemIds, brand, category }) =>
+      capture(async () => {
+        const account = await accounts.getActiveAccountOrThrow();
+        return withAccountHeader(account, await displayGetCatalog(client, account.advertiserId, { itemIds, brand, category }));
+      })
+  );
+
+  server.registerTool(
+    "display_get_brands",
+    { description: "Get display brands for active account", inputSchema: z.object({ search: z.string().optional() }).strict() },
+    ({ search }) =>
+      capture(async () => {
+        const account = await accounts.getActiveAccountOrThrow();
+        return withAccountHeader(account, await displayGetBrands(client, account.advertiserId, search));
+      })
+  );
+
+  server.registerTool(
+    "display_get_taxonomies",
+    { description: "Get display taxonomies for active account", inputSchema: z.object({ search: z.string().optional() }).strict() },
+    ({ search }) =>
+      capture(async () => {
+        const account = await accounts.getActiveAccountOrThrow();
+        return withAccountHeader(account, await displayGetTaxonomies(client, account.advertiserId, search));
+      })
+  );
+
+  server.registerTool(
+    "display_get_brand_landing_pages",
+    { description: "Get display brand landing pages for active account", inputSchema: z.object({ pageType: z.string().optional(), brand: z.string().optional() }).strict() },
+    ({ pageType, brand }) =>
+      capture(async () => {
+        const account = await accounts.getActiveAccountOrThrow();
+        return withAccountHeader(account, await displayGetBrandLandingPages(client, account.advertiserId, { pageType, brand }));
+      })
+  );
+
+  server.registerTool(
+    "display_get_folders",
+    { description: "Get display folders for active account", inputSchema: z.object({ search: z.string().optional() }).strict() },
+    ({ search }) =>
+      capture(async () => {
+        const account = await accounts.getActiveAccountOrThrow();
+        return withAccountHeader(account, await displayGetFolders(client, account.advertiserId, search));
+      })
+  );
+
+  server.registerTool(
+    "display_get_reach_estimate",
+    { description: "Get display reach estimate for active account", inputSchema: z.object({ targeting: z.string().optional(), startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() }).strict() },
+    ({ targeting, startDate, endDate }) =>
+      capture(async () => {
+        const account = await accounts.getActiveAccountOrThrow();
+        return withAccountHeader(account, await displayGetReachEstimate(client, account.advertiserId, targeting, startDate, endDate));
+      })
+  );
+
+  server.registerTool(
+    "display_get_delivery_estimate",
+    { description: "Get display delivery estimate for active account", inputSchema: z.object({ budget: z.number().optional(), targeting: z.string().optional() }).strict() },
+    ({ budget, targeting }) =>
+      capture(async () => {
+        const account = await accounts.getActiveAccountOrThrow();
+        return withAccountHeader(account, await displayGetDeliveryEstimate(client, account.advertiserId, budget, targeting));
+      })
+  );
+
+  server.registerResource(
+    "api-docs",
+    "walmart://api-docs",
+    { description: "Complete reference for all Walmart Connect MCP tools" },
+    async () => ({
+      contents: [
+        {
+          uri: "walmart://api-docs",
+          mimeType: "text/plain",
+          text: `Walmart Connect MCP — Tool Reference
+
+list_accounts — List all discovered advertiser accounts
+set_account — Pin an account by name or ID
+get_active_account — Show currently pinned account
+switch_account — Switch to another account context
+refresh_accounts — Refresh account discovery snapshot
+get_campaigns — List Sponsored Search campaigns
+get_ad_groups — List Sponsored Search ad groups
+get_ad_items — List Sponsored Search ad items
+get_keywords — List Sponsored Search keywords
+get_realtime_stats — Get Sponsored Search realtime performance
+create_snapshot — Create Sponsored Search snapshot
+get_snapshot_status — Check Sponsored Search snapshot status
+download_snapshot — Download Sponsored Search snapshot
+get_placements — List Sponsored Search placements
+get_placement_multipliers — Get placement bid multipliers
+get_platform_multipliers — Get platform bid multipliers
+get_sba_profile — Get Sponsored Brands profile
+get_review_status — Get ad review status
+get_media — List media assets
+search_items — Search Walmart catalog items
+get_keyword_analytics — Get keyword analytics
+get_suggested_keywords — Get suggested keywords
+get_api_usage — Get API usage and rate-limit status
+get_latest_report_date — Get latest report date
+get_top_search_trends — Get Walmart-wide top search trends
+get_item_recommendations — Get item recommendations
+get_keyword_recommendations — Get keyword recommendations
+get_campaign_recommendations — Get campaign recommendations
+display_get_campaigns — List Display campaigns
+display_get_ad_groups — List Display ad groups
+display_get_keywords — List Display keywords
+display_get_targeting — List Display targeting
+display_get_geo_locations — List Display geo locations
+display_get_creatives — List Display creatives
+display_get_creative_preview — Get Display creative preview
+display_get_creative_associations — List Display creative associations
+display_get_realtime_stats — Get Display realtime performance
+display_create_snapshot — Create Display snapshot
+display_get_snapshot_status — Check Display snapshot status
+display_download_snapshot — Download Display snapshot
+display_get_itemsets — List Display itemsets
+display_get_itemset_associations — List Display itemset associations
+display_get_catalog — Get Display catalog data
+display_get_brands — List Display brands
+display_get_taxonomies — List Display taxonomies
+display_get_brand_landing_pages — List Display brand landing pages
+display_get_folders — List Display folders
+display_get_reach_estimate — Get Display reach forecast
+display_get_delivery_estimate — Get Display delivery forecast
+
+See README for full documentation.`
+        }
+      ]
+    })
+  );
+
+  server.registerResource(
+    "account-list",
+    "walmart://account-list",
+    { description: "Cached list of all discoverable advertiser accounts" },
+    async () => {
+      const discoveredAccounts = await listAccounts(accounts);
+      return {
+        contents: [
+          {
+            uri: "walmart://account-list",
+            mimeType: "application/json",
+            text: JSON.stringify(discoveredAccounts, null, 2)
+          }
+        ]
+      };
+    }
   );
 }

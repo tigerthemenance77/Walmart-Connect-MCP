@@ -20,6 +20,10 @@ export class WalmartApiClient {
   async request(path: string, options: RequestOptions = {}): Promise<unknown> {
     const { method = "GET", query, body, rawUrl, baseUrl } = options;
 
+    if (method !== "GET" && method !== "POST") {
+      throw new McpToolError("API_ERROR", `Blocked non-read-only HTTP method: ${String(method)}`);
+    }
+
     if (method === "POST" && !this.isAllowedPost(path)) {
       throw new McpToolError("API_ERROR", `Blocked non-read-only POST endpoint: ${path}`);
     }

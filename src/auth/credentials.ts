@@ -9,8 +9,7 @@ export interface WalmartCredentials {
   keyVersion: string;
 }
 
-const AUTH_ERR_MSG =
-  "Authentication failed — check that WALMART_AUTH_TOKEN, WALMART_CONSUMER_ID, and WALMART_PRIVATE_KEY_PATH are set correctly.";
+const AUTH_ERR_MSG = "Authentication failed — check your credentials.";
 
 export function loadCredentials(): WalmartCredentials {
   const authToken = process.env.WALMART_AUTH_TOKEN;

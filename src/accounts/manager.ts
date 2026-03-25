@@ -14,6 +14,10 @@ const accountContext: { activeAccount: WalmartAccount | null } = {
   activeAccount: null
 };
 
+export async function listAccounts(manager: AccountsManager): Promise<WalmartAccount[]> {
+  return manager.listAccounts();
+}
+
 export class AccountsManager {
   private inMemoryCache: AccountsCache | null = null;
   private pendingMatches: WalmartAccount[] | null = null;

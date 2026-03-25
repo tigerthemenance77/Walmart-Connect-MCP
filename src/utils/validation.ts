@@ -40,7 +40,7 @@ export const snapshotTypeSchema = z.enum([
   "auditSnapshot"
 ]);
 
-export const displaySnapshotTypeSchema = z.enum(["campaign", "adGroup", "keyword"]);
+export const displaySnapshotTypeSchema = z.enum(["campaign", "adGroup", "keyword", "bid", "creative", "pageType", "platform"]);
 
 export function parseCsv(csv: string): Record<string, string>[] {
   const lines = csv.trim().split(/\r?\n/).filter(Boolean);

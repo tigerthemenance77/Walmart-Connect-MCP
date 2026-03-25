@@ -125,7 +125,7 @@ Every data response includes the `📍 Account:` header so you always know which
 
 **Search snapshot report types:** `keyword`, `campaign`, `adItem`, `adGroup`, `placement`, `platform`, `pageType`, `brand`, `category`, `itemKeyword`, `searchImpression`, `itemHealth`, `outOfBudgetRecommendations`, `attributedPurchases`, `videoCampaigns`, `videoKeywords`, `advancedInsights`, `entitySnapshot`, `auditSnapshot`, `advertiserAttributesV2`
 
-### Display — Entity Data (8 tools)
+### Display — Entity Data (15 tools)
 | Tool | Description |
 |------|-------------|
 | `display_get_campaigns` | List Display campaigns |
@@ -136,16 +136,25 @@ Every data response includes the `📍 Account:` header so you always know which
 | `display_get_creatives` | List creative assets |
 | `display_get_creative_preview` | Preview a creative by ID |
 | `display_get_creative_associations` | List ad group ↔ creative mappings |
+| `display_get_itemsets` | List itemsets |
+| `display_get_itemset_associations` | List itemset associations |
+| `display_get_catalog` | Query catalog items |
+| `display_get_brands` | Search brands |
+| `display_get_taxonomies` | Search taxonomies |
+| `display_get_brand_landing_pages` | List brand landing pages |
+| `display_get_folders` | List asset folders |
 
-### Display — Performance + Snapshots (4 tools)
+### Display — Forecasting + Performance + Snapshots (6 tools)
 | Tool | Description |
 |------|-------------|
+| `display_get_reach_estimate` | Reach estimate for targeting/date range |
+| `display_get_delivery_estimate` | Delivery estimate for budget + targeting |
 | `display_get_realtime_stats` | Near-real-time impressions/clicks/spend (15min lag) |
 | `display_create_snapshot` | Initiate async Display report |
 | `display_get_snapshot_status` | Poll Display snapshot readiness |
 | `display_download_snapshot` | Download + parse Display report |
 
-**Display snapshot report types:** `campaign`, `adGroup`, `keyword`
+**Display snapshot report types:** `campaign`, `adGroup`, `keyword`, `bid`, `creative`, `pageType`, `platform`
 
 ## Troubleshooting
 

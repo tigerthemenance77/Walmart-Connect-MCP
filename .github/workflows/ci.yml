@@ -1,0 +1,25 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm test
+      - name: Credential leak check
+        run: |
+          if grep -r "auth_token\|WALMART_AUTH_TOKEN\|consumer_id\|private_key" dist/; then
+            echo "CREDENTIAL LEAK DETECTED in dist/"
+            exit 1
+          fi
+          echo "No credential material in dist/ ✅"
