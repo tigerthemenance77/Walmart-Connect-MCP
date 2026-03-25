@@ -1,0 +1,5 @@
+accounts:
+  - advertiserId: 12345
+    advertiserName: Acme Corp
+    advertiserType: 3p
+    apiType: search
