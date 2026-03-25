@@ -79,17 +79,46 @@ export function registerTools(server: McpServer, credentials: WalmartCredentials
           role: "user",
           content: {
             type: "text",
-            text: `Welcome to Walmart Connect MCP! Let's get you set up.
+            text: `Welcome to Walmart Connect MCP Server! Here's how to get set up.
 
-Step 1: Verify credentials are loaded — call get_active_account. If it errors with missing credentials, check your WALMART_AUTH_TOKEN, WALMART_CONSUMER_ID, and WALMART_PRIVATE_KEY_PATH env vars.
+━━━ STEP 1: Generate RSA Key Pair ━━━
+If you don't already have credentials, generate an RSA key pair:
 
-Step 2: Discover your accounts — call list_accounts. If the cache is empty, it will auto-run account discovery. This takes ~60 seconds while the snapshot generates.
+  openssl genrsa -des3 -out agency_key_pair 2048
+  openssl pkcs8 -topk8 -inform PEM -in agency_key_pair -outform PEM -out agency_private_key.pem -nocrypt
+  openssl rsa -in agency_key_pair -outform PEM -pubout -out agency_public_key.pem
 
-Step 3: Select an account — call set_account with the name of the account you want to query (e.g. "Acme Corp" or just "Acme").
+Upload your public key to the Walmart Connect Self-Serve Partner Onboarding Platform.
+You'll receive a Consumer ID, Auth Token, and Key Version.
 
-Step 4: Run a test query — call get_campaigns to verify data is flowing.
+━━━ STEP 2: Configure Environment Variables ━━━
+Set these three environment variables (or add to your Claude Desktop config):
 
-You're ready to work with Walmart Connect data!`
+  WALMART_AUTH_TOKEN=<your bearer token from Walmart>
+  WALMART_CONSUMER_ID=<your consumer UUID from Walmart>
+  WALMART_PRIVATE_KEY_PATH=<path to your agency_private_key.pem file>
+
+━━━ STEP 3: Verify Credentials ━━━
+Call get_api_usage — if it returns a count, your credentials are working.
+If it errors, double-check your env vars and ensure the private key file exists.
+
+━━━ STEP 4: Discover Your Accounts ━━━
+Call list_accounts — this auto-discovers all advertiser accounts you have access to.
+First run takes ~60 seconds while the account snapshot generates.
+
+━━━ STEP 5: Select an Account ━━━
+Call set_account with the name of the account you want to query.
+Example: set_account("Acme Corp") or set_account("12345")
+
+━━━ STEP 6: Run a Test Query ━━━
+Try get_campaigns to verify data flows correctly.
+You should see your campaign list with the 📍 Account header confirming which account.
+
+━━━ TROUBLESHOOTING ━━━
+• 403 errors: Walmart requires no cookies. This server handles that automatically.
+• Auth signature errors: Ensure your private key is PKCS8 PEM format (the openssl commands above produce the correct format).
+• Empty account list: You may need a Walmart Connect Partner Network membership. Contact wmc-partner-portal@walmart.com.
+• Rate limits: Use get_api_usage to check your hourly operation count.`
           }
         }
       ]
